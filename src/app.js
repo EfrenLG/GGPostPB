@@ -63,6 +63,9 @@ app.use('/api/icon', authMiddleware, fileRoutes);
 //Guardo el post (datos)
 app.use('/api/post', authMiddleware, postRoutes);
 
+app.get('/', (req, res) => {
+  res.send('¡Servidor funcionando correctamente!');
+});
 
 app.use(notFoundHandler);
 app.use(errorHandler);
