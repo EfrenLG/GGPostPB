@@ -1,4 +1,5 @@
 const express = require('express');
+const OpenAI = require('openai');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const userRoutes = require('./routes/userRoutes');
@@ -18,6 +19,23 @@ const app = express();
 app.use(cookieParser());
 
 app.use(express.json());
+
+// OPENAI
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message } = req.body;
+    const response = await client.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: message }],
+    });
+    res.json({ reply: response.choices[0].message.content });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error en la IA" });
+  }
+});
 
 //PARA QUE NO ME BORRE EL TOKEN DE LAS COOKIES LA BASE DE LA URL TIENE QUE SER ASI!!!--> http://localhost:5500/
 const allowedOrigins = [
