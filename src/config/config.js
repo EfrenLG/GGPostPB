@@ -1,6 +1,6 @@
 // Configuración global
 const config = {
-  PORT: process.env.PORT || 5173,
+  PORT: process.env.PORT,
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
 };

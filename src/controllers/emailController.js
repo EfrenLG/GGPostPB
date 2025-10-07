@@ -21,6 +21,12 @@ const sendEmail = async (req, res) => {
   }
 };
 
+const testRoute = (req, res) => {
+
+  res.send('Servidor de emails funcionando correctamente.');
+};
+
 module.exports = {
-  sendEmail
+  sendEmail,
+  testRoute
 };
