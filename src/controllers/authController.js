@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const Usuario = require('../models/userModel');
 const { checkUserValidations, createUserValidations, loginUserValidations } = require('../validations/userValidations');
 
-const JWT_SECRET = 'SlztIJvefUHFyVQrNAYS6rtk23';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const authController = {
 

@@ -1,5 +1,5 @@
 module.exports = {
-    port: process.env.PORT || 5173,
+    port: process.env.PORT,
     wsOptions: {
         clientTracking: true
     }
