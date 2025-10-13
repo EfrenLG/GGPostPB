@@ -56,6 +56,10 @@ app.use('/auth', authRoutes);
 app.use('/email', emailRoutes);
 
 //RUTAS PRIVADAS
+app.get('/api/verify', authMiddleware, (req, res) => {
+  res.status(200).json({ message: 'Token válido', user: req.user });
+});
+
 app.use('/api/user', authMiddleware, userRoutes);
 
 //Guardo el icono del usuario y la foto del post (imagenes)
