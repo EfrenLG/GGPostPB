@@ -5,7 +5,7 @@ async function getUser(id) {
 
     try {
 
-        const usuario = await Usuario.findById( id );
+        const usuario = await Usuario.findById(id);
         const post = await Post.find({ idUser: id });
 
         if (!post) {
@@ -44,4 +44,28 @@ async function updateUserPost(id, file, tittle, description) {
     };
 };
 
-module.exports = { getUser, updateUserIcon, updateUserPost };
+async function getUsers() {
+
+    try {
+
+        const usuarios = await Usuario.find({}, '_id icon');
+
+        if (!usuarios || usuarios.length === 0) {
+            return false;
+        };
+
+        const data = usuarios.map(usuario => ({
+            id: usuario._id,
+            icon: usuario.icon
+        }));
+
+        return data;
+
+    } catch (err) {
+
+        console.error('Error al obtener usuarios:', err);
+        throw err;
+    };
+};
+
+module.exports = { getUser, updateUserIcon, updateUserPost, getUsers };
