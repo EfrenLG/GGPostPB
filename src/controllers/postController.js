@@ -1,4 +1,6 @@
 const Post = require('../models/postModel');
+const Message = require('../models/messageModel');
+
 const { createPostValidations, deletePostValidations } = require('../validations/postValidations');
 const { uploadFile, updateUserPost, updatePostView, updatePostLike } = require('../services/postService');
 
@@ -61,6 +63,11 @@ const postController = {
                 const post = await Post.findByIdAndDelete(id);
                 if (!post) {
                     return res.status(404).json({ error: 'Post no encontrado' });
+                }
+
+                const message = await Message.deleteMany({ postId: id })
+                if (!message) {
+                    return res.status(404).json({ error: 'Mensaje no encontrado' });
                 }
 
                 res.status(200).json({ message: 'Post eliminado exitosamente', id });
