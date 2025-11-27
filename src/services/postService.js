@@ -14,7 +14,7 @@ async function getPost(id) {
             throw new Error('Post no encontrado');
         }
 
-        const user = await Usuario.findById(post.userId);
+        const user = await Usuario.findById(post.idUser);
 
         return { post, user };
 
