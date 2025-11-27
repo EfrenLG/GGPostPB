@@ -1,13 +1,29 @@
 const Post = require('../models/postModel');
 const Message = require('../models/messageModel');
 
-const { createPostValidations, deletePostValidations } = require('../validations/postValidations');
-const { uploadFile, updateUserPost, updatePostView, updatePostLike } = require('../services/postService');
+const { getPostValidations, createPostValidations, deletePostValidations } = require('../validations/postValidations');
+const { getPost, uploadFile, updateUserPost, updatePostView, updatePostLike } = require('../services/postService');
 
 
 const postController = {
 
-    // Registro de post
+    getPostController: [
+        ...getPostValidations,
+        async (req, response) => {
+            try {
+
+                const { id } = req.params;
+                const data = await getPost(id);
+
+                response.status(200).json(data);
+
+            } catch (e) {
+
+                console.log('Error al recoger el post de la BBDD', e);
+                response.status(500).json({ error: 'Error al recoger el post de la BBDD' });
+            }
+        }
+    ],
     all: [
         async (req, res) => {
             try {

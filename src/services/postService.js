@@ -1,8 +1,33 @@
 const fs = require('fs').promises;
 const Post = require('../models/postModel');
+const Usuario = require('../models/userModel');
 const path = require('path');
 
 const uploadDir = path.join(__dirname, '../../post');
+
+async function getPost(id) {
+
+    try {
+
+        async function getPost(id) {
+
+            const post = await Post.findById(id);
+
+            if (!post) {
+                throw new Error('Post no encontrado');
+            }
+
+            const user = await Usuario.findById(post.userId);
+
+            return { post, user };
+        }
+
+    } catch (err) {
+
+        console.error('Error al obtener user:', err);
+        throw err;
+    };
+};
 
 async function initializeUploadDir() {
     try {
@@ -70,5 +95,5 @@ async function updatePostLike(id, userId) {
 initializeUploadDir();
 
 module.exports = {
-    uploadFile, updateUserPost, updatePostView, updatePostLike
+    getPost, uploadFile, updateUserPost, updatePostView, updatePostLike
 }; 

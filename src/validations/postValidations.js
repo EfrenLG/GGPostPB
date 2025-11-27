@@ -10,6 +10,16 @@ const validateResult = (req, res, next) => {
     next();
 };
 
+const getPostValidations = [
+    param('id')
+        .notEmpty()
+        .withMessage('El id es requerido')
+        .isString()
+        .withMessage('El id del post debe ser una cadena'),
+
+    validateResult
+];
+
 const createPostValidations = [
     body('idUser')
         .notEmpty()
@@ -49,5 +59,5 @@ const deletePostValidations = [
 ];
 
 module.exports = {
-    createPostValidations, deletePostValidations
+    getPostValidations, createPostValidations, deletePostValidations
 }; 

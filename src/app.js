@@ -60,13 +60,13 @@ app.get('/api/verify', authMiddleware, (req, res) => {
   res.status(200).json({ message: 'Token válido', user: req.user });
 });
 
+//USUARIOS
 app.use('/api/user', authMiddleware, userRoutes);
-app.use('/api/users', authMiddleware, userRoutes);
 
 //Guardo el icono del usuario y la foto del post (imagenes)
 app.use('/api/icon', authMiddleware, fileRoutes);
 
-//Guardo el post (datos)
+//POST
 app.use('/api/post', authMiddleware, postRoutes);
 
 // OPENAI
