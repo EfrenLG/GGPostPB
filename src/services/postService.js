@@ -8,19 +8,15 @@ const uploadDir = path.join(__dirname, '../../post');
 async function getPost(id) {
 
     try {
+        const post = await Post.findById(id);
 
-        async function getPost(id) {
-
-            const post = await Post.findById(id);
-
-            if (!post) {
-                throw new Error('Post no encontrado');
-            }
-
-            const user = await Usuario.findById(post.userId);
-
-            return { post, user };
+        if (!post) {
+            throw new Error('Post no encontrado');
         }
+
+        const user = await Usuario.findById(post.userId);
+
+        return { post, user };
 
     } catch (err) {
 
