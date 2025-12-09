@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-// Definir el esquema de post
 const postSchema = new mongoose.Schema({
     idUser: {
         type: String,
