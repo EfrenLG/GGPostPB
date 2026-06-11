@@ -6,7 +6,6 @@ const path = require('path');
 const uploadDir = path.join(__dirname, '../../post');
 
 async function getPost(id) {
-
     try {
         const post = await Post.findById(id);
 
@@ -19,11 +18,10 @@ async function getPost(id) {
         return { post, user };
 
     } catch (err) {
-
-        console.error('Error al obtener user:', err);
+        console.error('Error al obtener post:', err);
         throw err;
-    };
-};
+    }
+}
 
 async function initializeUploadDir() {
     try {
@@ -31,43 +29,48 @@ async function initializeUploadDir() {
     } catch {
         await fs.mkdir(uploadDir, { recursive: true });
     }
-};
+}
 
 async function uploadFile(file) {
-
     const filePath = path.join(uploadDir, file.originalname);
     await fs.writeFile(filePath, file.buffer);
     return file.originalname;
-};
+}
 
 async function updateUserPost(id, tittle, description, categories) {
     try {
-
-        const res = await Post.findByIdAndUpdate(id, { tittle: tittle, description: description, categories: categories });
+        const res = await Post.findByIdAndUpdate(id, { tittle, description, categories });
         console.log('Post actualizado:', res);
     } catch (err) {
         console.error('Error al actualizar Post:', err);
+        throw err;
     }
-};
+}
 
+// FIX: query atómica con $inc en lugar de dos operaciones separadas (findById + findByIdAndUpdate)
 async function updatePostView(id) {
     try {
-
-        const res = await Post.findById(id);
-
-        const val = res.views + 1;
-
-        const reschange = await Post.findByIdAndUpdate(id, { views: val });
-
-        console.log('Post actualizado:', res);
+        const res = await Post.findByIdAndUpdate(
+            id,
+            { $inc: { views: 1 } },
+            { new: true }
+        );
+        console.log('Vistas actualizadas:', res?.views);
     } catch (err) {
-        console.error('Error al actualizar Post:', err);
+        console.error('Error al actualizar vistas:', err);
+        throw err;
     }
-};
+}
 
+// FIX: ahora retorna { updatedPost, action } que es lo que espera postController.js
+// Antes solo retornaba updatedPost y el destructuring en el controller fallaba silenciosamente
 async function updatePostLike(id, userId) {
     try {
         const post = await Post.findById(id);
+
+        if (!post) {
+            throw new Error('Post no encontrado');
+        }
 
         const hasLiked = post.likes.includes(userId);
 
@@ -79,17 +82,17 @@ async function updatePostLike(id, userId) {
             { new: true }
         );
 
-        console.log('Post actualizado:', updatedPost);
-        return updatedPost;
+        const action = hasLiked ? 'dislike' : 'like'; // FIX: añadido
+
+        return { updatedPost, action }; // FIX: objeto completo que espera el controller
     } catch (err) {
-        console.error('Error al actualizar Post:', err);
-    };
-};
+        console.error('Error al actualizar likes:', err);
+        throw err;
+    }
+}
 
-
-// Inicializar el directorio de uploads
 initializeUploadDir();
 
 module.exports = {
     getPost, uploadFile, updateUserPost, updatePostView, updatePostLike
-}; 
+};
