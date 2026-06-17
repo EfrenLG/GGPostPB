@@ -25,6 +25,15 @@ const userSchema = new mongoose.Schema({
         required: true,
         default: 'default.png'
     },
+    // NUEVO: campos para seguir/ser seguido
+    followers: {
+        type: [String],
+        default: []
+    },
+    following: {
+        type: [String],
+        default: []
+    },
     fechaAlta: {
         type: Date,
         required: true,
@@ -34,25 +43,20 @@ const userSchema = new mongoose.Schema({
 
 userSchema.pre('save', async function (next) {
     try {
-
         if (!this.isModified('password')) return next();
-
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(this.password, salt);
-
         this.password = hashedPassword;
         next();
     } catch (error) {
-
         next(error);
     };
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
-
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
 const Usuario = mongoose.model('Users', userSchema);
 
-module.exports = Usuario; 
+module.exports = Usuario;

@@ -1,5 +1,4 @@
-// Importación de servicios
-const { getUser, updateUserIcon, getUsers } = require('../services/userServices');
+const { getUser, updateUserIcon, getUsers, followUser, getPublicProfile } = require('../services/userServices');
 const { getUserValidations, updateUserIconValidations } = require('../validations/userValidations');
 
 const userController = {
@@ -8,25 +7,21 @@ const userController = {
         ...getUserValidations,
         async (req, response) => {
             try {
-
                 const { id } = req.params;
                 const data = await getUser(id);
-
                 response.status(200).json(data);
-
             } catch (e) {
-
                 console.log('Error al recoger usuario de la BBDD', e);
                 response.status(500).json({ error: 'Error al recoger usuario de la BBDD' });
             }
         }
     ],
+
     updateUserIcon: [
         ...updateUserIconValidations,
         async (req, response) => {
             try {
-                const { id, file, } = req.body;
-
+                const { id, file } = req.body;
                 const updatedUser = await updateUserIcon(id, file);
                 response.status(200).json({ success: true });
             } catch (e) {
@@ -35,21 +30,54 @@ const userController = {
             }
         }
     ],
+
     getUsersController: [
         async (req, response) => {
             try {
-
                 const data = await getUsers();
-
                 response.status(200).json(data);
-
             } catch (e) {
-
                 console.log('Error al recoger los usuarios de la BBDD', e);
                 response.status(500).json({ error: 'Error al recoger usuario de la BBDD' });
             }
         }
-    ]
+    ],
+
+    // NUEVO: toggle follow/unfollow
+    // Lee el id del usuario autenticado desde req.user (puesto por authMiddleware)
+    followUserController: [
+        async (req, response) => {
+            try {
+                const currentUserId = req.user.id;
+                const { id: targetUserId } = req.params;
+
+                if (currentUserId === targetUserId) {
+                    return response.status(400).json({ error: 'No puedes seguirte a ti mismo' });
+                }
+
+                const result = await followUser(currentUserId, targetUserId);
+                response.status(200).json({ success: true, action: result.action });
+
+            } catch (e) {
+                console.log('Error al seguir usuario', e);
+                response.status(500).json({ error: 'Error al seguir usuario' });
+            }
+        }
+    ],
+
+    // NUEVO: perfil público de cualquier usuario
+    getPublicProfileController: [
+        async (req, response) => {
+            try {
+                const { id } = req.params;
+                const data = await getPublicProfile(id);
+                response.status(200).json(data);
+            } catch (e) {
+                console.log('Error al recoger perfil público', e);
+                response.status(500).json({ error: 'Error al recoger perfil' });
+            }
+        }
+    ],
 };
 
 module.exports = userController;
