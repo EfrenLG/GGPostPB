@@ -59,10 +59,10 @@ async function getUsers() {
     }
 }
 
-// NUEVO: toggle follow/unfollow
-// - Añade currentUserId a followers del target
-// - Añade targetUserId a following del current
-// Si ya seguía, hace unfollow (elimina de ambos)
+// ACTUALIZADO: toggle follow/unfollow con soporte para cuentas privadas
+// - Si el target es público: comportamiento normal (follow directo / unfollow)
+// - Si el target es privado y no le sigues: se crea una solicitud pendiente en vez de seguir directo
+// - Si ya había una solicitud pendiente: se cancela (toggle)
 async function followUser(currentUserId, targetUserId) {
     try {
         const currentUser = await Usuario.findById(currentUserId);
@@ -74,8 +74,8 @@ async function followUser(currentUserId, targetUserId) {
 
         const alreadyFollowing = currentUser.following.includes(targetUserId);
 
+        // Ya le sigues -> unfollow (independientemente de si es privada o no)
         if (alreadyFollowing) {
-            // UNFOLLOW
             await Usuario.findByIdAndUpdate(currentUserId, {
                 $pull: { following: targetUserId }
             });
@@ -83,16 +83,35 @@ async function followUser(currentUserId, targetUserId) {
                 $pull: { followers: currentUserId }
             });
             return { action: 'unfollow' };
-        } else {
-            // FOLLOW
-            await Usuario.findByIdAndUpdate(currentUserId, {
-                $addToSet: { following: targetUserId }
-            });
-            await Usuario.findByIdAndUpdate(targetUserId, {
-                $addToSet: { followers: currentUserId }
-            });
-            return { action: 'follow' };
         }
+
+        // Cuenta privada: gestionar solicitud en vez de seguir directo
+        if (targetUser.isPrivate) {
+            const alreadyRequested = targetUser.followRequests.includes(currentUserId);
+
+            if (alreadyRequested) {
+                // Cancelar solicitud pendiente
+                await Usuario.findByIdAndUpdate(targetUserId, {
+                    $pull: { followRequests: currentUserId }
+                });
+                return { action: 'cancelled' };
+            } else {
+                // Crear solicitud pendiente
+                await Usuario.findByIdAndUpdate(targetUserId, {
+                    $addToSet: { followRequests: currentUserId }
+                });
+                return { action: 'requested' };
+            }
+        }
+
+        // Cuenta pública -> follow directo
+        await Usuario.findByIdAndUpdate(currentUserId, {
+            $addToSet: { following: targetUserId }
+        });
+        await Usuario.findByIdAndUpdate(targetUserId, {
+            $addToSet: { followers: currentUserId }
+        });
+        return { action: 'follow' };
 
     } catch (err) {
         console.error('Error al seguir usuario:', err);
@@ -100,29 +119,127 @@ async function followUser(currentUserId, targetUserId) {
     }
 }
 
+// NUEVO: activar/desactivar cuenta privada
+async function togglePrivate(userId) {
+    try {
+        const usuario = await Usuario.findById(userId);
+        if (!usuario) throw new Error('Usuario no encontrado');
+
+        const updated = await Usuario.findByIdAndUpdate(
+            userId,
+            { isPrivate: !usuario.isPrivate },
+            { new: true }
+        );
+
+        return { isPrivate: updated.isPrivate };
+    } catch (err) {
+        console.error('Error al cambiar privacidad:', err);
+        throw err;
+    }
+}
+
+// NUEVO: lista de solicitudes pendientes que ha recibido el usuario, con datos completos
+async function getFollowRequests(userId) {
+    try {
+        const usuario = await Usuario.findById(userId);
+        if (!usuario) throw new Error('Usuario no encontrado');
+
+        const ids = usuario.followRequests;
+        if (!ids || ids.length === 0) return [];
+
+        const usuarios = await Usuario.find(
+            { _id: { $in: ids } },
+            '_id username icon'
+        );
+
+        return usuarios.map(u => ({
+            id: u._id,
+            username: u.username,
+            icon: u.icon
+        }));
+
+    } catch (err) {
+        console.error('Error al obtener solicitudes de seguimiento:', err);
+        throw err;
+    }
+}
+
+// NUEVO: aceptar una solicitud de seguimiento
+// requesterId empieza a seguir a userId
+async function acceptFollowRequest(userId, requesterId) {
+    try {
+        const usuario = await Usuario.findById(userId);
+        if (!usuario) throw new Error('Usuario no encontrado');
+
+        if (!usuario.followRequests.includes(requesterId)) {
+            throw new Error('No existe esa solicitud de seguimiento');
+        }
+
+        // Quitar de followRequests, añadir a followers/following
+        await Usuario.findByIdAndUpdate(userId, {
+            $pull:     { followRequests: requesterId },
+            $addToSet: { followers: requesterId }
+        });
+        await Usuario.findByIdAndUpdate(requesterId, {
+            $addToSet: { following: userId }
+        });
+
+        return { success: true };
+    } catch (err) {
+        console.error('Error al aceptar solicitud:', err);
+        throw err;
+    }
+}
+
+// NUEVO: rechazar una solicitud de seguimiento (simplemente se borra)
+async function rejectFollowRequest(userId, requesterId) {
+    try {
+        await Usuario.findByIdAndUpdate(userId, {
+            $pull: { followRequests: requesterId }
+        });
+        return { success: true };
+    } catch (err) {
+        console.error('Error al rechazar solicitud:', err);
+        throw err;
+    }
+}
+
 // NUEVO: perfil público — datos del usuario + sus posts + contadores
-async function getPublicProfile(targetId) {
+// ACTUALIZADO: tiene en cuenta isPrivate. Si es privada y el visitante no sigue,
+// no se devuelven los posts (el front decide qué mostrar según canViewPosts)
+async function getPublicProfile(targetId, viewerId) {
     try {
         const usuario = await Usuario.findById(targetId, '-password -email -permissions');
         if (!usuario) throw new Error('Usuario no encontrado');
 
-        const posts = await Post.find({ idUser: targetId }).sort({ fechaAlta: -1 });
+        const isOwner     = String(targetId) === String(viewerId);
+        const isFollower   = usuario.followers.includes(viewerId);
+        const canViewPosts = isOwner || !usuario.isPrivate || isFollower;
+
+        const posts = canViewPosts
+            ? await Post.find({ idUser: targetId }).sort({ fechaAlta: -1 })
+            : [];
+
+        const hasPendingRequest = usuario.followRequests.includes(viewerId);
 
         return {
             usuario: {
-                _id:       usuario._id,
-                username:  usuario.username,
-                icon:      usuario.icon,
-                followers: usuario.followers,
-                following: usuario.following,
-                fechaAlta: usuario.fechaAlta,
+                _id:        usuario._id,
+                username:   usuario.username,
+                icon:       usuario.icon,
+                followers:  usuario.followers,
+                following:  usuario.following,
+                isPrivate:  usuario.isPrivate,
+                fechaAlta:  usuario.fechaAlta,
             },
             posts,
             stats: {
-                posts:     posts.length,
+                posts:     canViewPosts ? posts.length : 0,
                 followers: usuario.followers.length,
                 following: usuario.following.length,
-            }
+            },
+            canViewPosts,
+            hasPendingRequest,
         };
 
     } catch (err) {
@@ -159,4 +276,16 @@ async function getFollowList(targetId, type) {
     }
 }
 
-module.exports = { getUser, updateUserIcon, updateUserPost, getUsers, followUser, getPublicProfile, getFollowList };
+module.exports = {
+    getUser,
+    updateUserIcon,
+    updateUserPost,
+    getUsers,
+    followUser,
+    getPublicProfile,
+    getFollowList,
+    togglePrivate,
+    getFollowRequests,
+    acceptFollowRequest,
+    rejectFollowRequest,
+};

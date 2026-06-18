@@ -1,4 +1,15 @@
-const { getUser, updateUserIcon, getUsers, followUser, getPublicProfile, getFollowList } = require('../services/userServices');
+const {
+    getUser,
+    updateUserIcon,
+    getUsers,
+    followUser,
+    getPublicProfile,
+    getFollowList,
+    togglePrivate,
+    getFollowRequests,
+    acceptFollowRequest,
+    rejectFollowRequest,
+} = require('../services/userServices');
 const { getUserValidations, updateUserIconValidations } = require('../validations/userValidations');
 
 const userController = {
@@ -43,8 +54,7 @@ const userController = {
         }
     ],
 
-    // NUEVO: toggle follow/unfollow
-    // Lee el id del usuario autenticado desde req.user (puesto por authMiddleware)
+    // ACTUALIZADO: toggle follow/unfollow/request, según privacidad del target
     followUserController: [
         async (req, response) => {
             try {
@@ -65,12 +75,13 @@ const userController = {
         }
     ],
 
-    // NUEVO: perfil público de cualquier usuario
+    // ACTUALIZADO: perfil público — ahora tiene en cuenta isPrivate y quién visita
     getPublicProfileController: [
         async (req, response) => {
             try {
                 const { id } = req.params;
-                const data = await getPublicProfile(id);
+                const viewerId = req.user.id;
+                const data = await getPublicProfile(id, viewerId);
                 response.status(200).json(data);
             } catch (e) {
                 console.log('Error al recoger perfil público', e);
@@ -97,6 +108,64 @@ const userController = {
             } catch (e) {
                 console.log('Error al recoger lista de seguidores/seguidos', e);
                 response.status(500).json({ error: 'Error al recoger la lista' });
+            }
+        }
+    ],
+
+    // NUEVO: activar/desactivar cuenta privada del usuario autenticado
+    togglePrivateController: [
+        async (req, response) => {
+            try {
+                const userId = req.user.id;
+                const result = await togglePrivate(userId);
+                response.status(200).json({ success: true, isPrivate: result.isPrivate });
+            } catch (e) {
+                console.log('Error al cambiar privacidad', e);
+                response.status(500).json({ error: 'Error al cambiar privacidad' });
+            }
+        }
+    ],
+
+    // NUEVO: solicitudes de seguimiento pendientes del usuario autenticado
+    getFollowRequestsController: [
+        async (req, response) => {
+            try {
+                const userId = req.user.id;
+                const data = await getFollowRequests(userId);
+                response.status(200).json(data);
+            } catch (e) {
+                console.log('Error al recoger solicitudes', e);
+                response.status(500).json({ error: 'Error al recoger solicitudes' });
+            }
+        }
+    ],
+
+    // NUEVO: aceptar solicitud de seguimiento
+    acceptFollowRequestController: [
+        async (req, response) => {
+            try {
+                const userId = req.user.id;
+                const { id: requesterId } = req.params;
+                await acceptFollowRequest(userId, requesterId);
+                response.status(200).json({ success: true });
+            } catch (e) {
+                console.log('Error al aceptar solicitud', e);
+                response.status(500).json({ error: 'Error al aceptar solicitud' });
+            }
+        }
+    ],
+
+    // NUEVO: rechazar solicitud de seguimiento
+    rejectFollowRequestController: [
+        async (req, response) => {
+            try {
+                const userId = req.user.id;
+                const { id: requesterId } = req.params;
+                await rejectFollowRequest(userId, requesterId);
+                response.status(200).json({ success: true });
+            } catch (e) {
+                console.log('Error al rechazar solicitud', e);
+                response.status(500).json({ error: 'Error al rechazar solicitud' });
             }
         }
     ],

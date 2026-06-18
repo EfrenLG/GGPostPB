@@ -34,6 +34,15 @@ const userSchema = new mongoose.Schema({
         type: [String],
         default: []
     },
+    // NUEVO: cuentas privadas
+    isPrivate: {
+        type: Boolean,
+        default: false
+    },
+    followRequests: {
+        type: [String],
+        default: []
+    },
     fechaAlta: {
         type: Date,
         required: true,
