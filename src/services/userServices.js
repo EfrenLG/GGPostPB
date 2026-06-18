@@ -131,4 +131,32 @@ async function getPublicProfile(targetId) {
     }
 }
 
-module.exports = { getUser, updateUserIcon, updateUserPost, getUsers, followUser, getPublicProfile };
+// NUEVO: lista de seguidores o seguidos con datos completos (username, icon)
+// type: 'followers' | 'following'
+async function getFollowList(targetId, type) {
+    try {
+        const usuario = await Usuario.findById(targetId);
+        if (!usuario) throw new Error('Usuario no encontrado');
+
+        const ids = type === 'followers' ? usuario.followers : usuario.following;
+
+        if (!ids || ids.length === 0) return [];
+
+        const usuarios = await Usuario.find(
+            { _id: { $in: ids } },
+            '_id username icon'
+        );
+
+        return usuarios.map(u => ({
+            id: u._id,
+            username: u.username,
+            icon: u.icon
+        }));
+
+    } catch (err) {
+        console.error('Error al obtener lista de seguidores/seguidos:', err);
+        throw err;
+    }
+}
+
+module.exports = { getUser, updateUserIcon, updateUserPost, getUsers, followUser, getPublicProfile, getFollowList };

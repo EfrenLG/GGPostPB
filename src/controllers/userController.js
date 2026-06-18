@@ -1,4 +1,4 @@
-const { getUser, updateUserIcon, getUsers, followUser, getPublicProfile } = require('../services/userServices');
+const { getUser, updateUserIcon, getUsers, followUser, getPublicProfile, getFollowList } = require('../services/userServices');
 const { getUserValidations, updateUserIconValidations } = require('../validations/userValidations');
 
 const userController = {
@@ -75,6 +75,28 @@ const userController = {
             } catch (e) {
                 console.log('Error al recoger perfil público', e);
                 response.status(500).json({ error: 'Error al recoger perfil' });
+            }
+        }
+    ],
+
+    // NUEVO: lista de seguidores o seguidos con datos completos
+    // GET /api/user/follow-list/:id?type=followers|following
+    getFollowListController: [
+        async (req, response) => {
+            try {
+                const { id } = req.params;
+                const { type } = req.query;
+
+                if (type !== 'followers' && type !== 'following') {
+                    return response.status(400).json({ error: "El parámetro 'type' debe ser 'followers' o 'following'" });
+                }
+
+                const data = await getFollowList(id, type);
+                response.status(200).json(data);
+
+            } catch (e) {
+                console.log('Error al recoger lista de seguidores/seguidos', e);
+                response.status(500).json({ error: 'Error al recoger la lista' });
             }
         }
     ],

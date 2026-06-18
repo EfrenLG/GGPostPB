@@ -5,6 +5,7 @@ const userController = require('../controllers/userController');
 // GET
 router.get('/all', userController.getUsersController);
 router.get('/profile/:id', userController.getPublicProfileController); // NUEVO: perfil público
+router.get('/follow-list/:id', userController.getFollowListController); // NUEVO: lista seguidores/seguidos
 router.get('/:id', userController.getUserController);
 
 // POST
