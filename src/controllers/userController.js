@@ -9,6 +9,7 @@ const {
     getFollowRequests,
     acceptFollowRequest,
     rejectFollowRequest,
+    updateBio,
 } = require('../services/userServices');
 const { getUserValidations, updateUserIconValidations } = require('../validations/userValidations');
 
@@ -166,6 +167,29 @@ const userController = {
             } catch (e) {
                 console.log('Error al rechazar solicitud', e);
                 response.status(500).json({ error: 'Error al rechazar solicitud' });
+            }
+        }
+    ],
+
+    // NUEVO: actualizar la biografía del usuario autenticado
+    updateBioController: [
+        async (req, response) => {
+            try {
+                const userId = req.user.id;
+                const { bio } = req.body;
+
+                if (typeof bio !== 'string') {
+                    return response.status(400).json({ error: 'La bio debe ser texto' });
+                }
+                if (bio.length > 150) {
+                    return response.status(400).json({ error: 'La bio no puede superar los 150 caracteres' });
+                }
+
+                const result = await updateBio(userId, bio);
+                response.status(200).json({ success: true, bio: result.bio });
+            } catch (e) {
+                console.log('Error al actualizar la bio', e);
+                response.status(500).json({ error: 'Error al actualizar la bio' });
             }
         }
     ],

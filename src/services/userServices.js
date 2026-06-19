@@ -38,6 +38,23 @@ async function updateUserPost(id, file, tittle, description) {
     }
 }
 
+// NUEVO: actualizar la biografía del perfil
+async function updateBio(userId, bio) {
+    try {
+        const cleanBio = (bio || '').trim().slice(0, 150);
+        const updated = await Usuario.findByIdAndUpdate(
+            userId,
+            { bio: cleanBio },
+            { new: true }
+        );
+        if (!updated) throw new Error('Usuario no encontrado');
+        return { bio: updated.bio };
+    } catch (err) {
+        console.error('Error al actualizar la bio:', err);
+        throw err;
+    }
+}
+
 // ACTUALIZADO: ahora devuelve también username para las stories y sugerencias
 async function getUsers() {
     try {
@@ -227,6 +244,7 @@ async function getPublicProfile(targetId, viewerId) {
                 _id:        usuario._id,
                 username:   usuario.username,
                 icon:       usuario.icon,
+                bio:        usuario.bio || '',
                 followers:  usuario.followers,
                 following:  usuario.following,
                 isPrivate:  usuario.isPrivate,
@@ -288,4 +306,5 @@ module.exports = {
     getFollowRequests,
     acceptFollowRequest,
     rejectFollowRequest,
+    updateBio,
 };

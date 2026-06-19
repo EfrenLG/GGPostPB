@@ -17,5 +17,6 @@ router.post('/follow-requests/:id/reject', userController.rejectFollowRequestCon
 // PUT
 router.put('/icon', userController.updateUserIcon);
 router.put('/privacy', userController.togglePrivateController); // NUEVO: toggle cuenta privada
+router.put('/bio', userController.updateBioController); // NUEVO: actualizar biografía
 
 module.exports = router;

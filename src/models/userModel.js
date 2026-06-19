@@ -43,6 +43,12 @@ const userSchema = new mongoose.Schema({
         type: [String],
         default: []
     },
+    // NUEVO: biografía del perfil
+    bio: {
+        type: String,
+        default: '',
+        maxlength: 150
+    },
     fechaAlta: {
         type: Date,
         required: true,
