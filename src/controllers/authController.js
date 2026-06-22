@@ -51,6 +51,10 @@ const authController = {
         }],
 
     // Login de usuario
+    // FIX: ya no se setea cookie httpOnly (fallaba con bloqueadores de cookies de
+    // terceros en despliegues cross-domain como Vercel + Render). Ahora el token
+    // se devuelve en el body y el front lo guarda en localStorage, enviándolo
+    // luego como header Authorization en cada petición.
     login: [
         ...loginUserValidations,
         async (req, res) => {
@@ -74,13 +78,6 @@ const authController = {
                     JWT_SECRET,
                     { expiresIn: '24h' }
                 );
-
-                res.cookie('token', token, {
-                    httpOnly: true,
-                    secure: true,
-                    sameSite: 'none',
-                    maxAge: 3600000,
-                });
 
                 res.json({
                     message: 'Login exitoso',
