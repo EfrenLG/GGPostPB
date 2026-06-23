@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const emailRoutes = require('./routes/emailRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const postRoutes = require('./routes/postRoutes');
+const messageRoutes = require('./routes/messageRoutes'); // NUEVO: comentarios REST
 const errorHandler = require('./middlewares/errorMiddleware');
 const notFoundHandler = require('./middlewares/notFoundHandler');
 const authMiddleware = require('./middlewares/authMiddleware');
@@ -16,7 +17,6 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 
 const app = express();
-app.set('trust proxy', 1);
 app.use(cookieParser());
 app.use(express.json());
 
@@ -63,8 +63,8 @@ app.get('/api/verify', authMiddleware, (req, res) => {
 app.use('/api/user', authMiddleware, userRoutes);
 app.use('/api/icon', authMiddleware, fileRoutes);
 app.use('/api/post', authMiddleware, postRoutes);
+app.use('/api/comments', authMiddleware, messageRoutes); // NUEVO: comentarios persistentes vía REST
 
-// FIX: /api/chat ahora protegida con authMiddleware (antes era pública)
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.post('/api/chat', authMiddleware, async (req, res) => {
