@@ -7,7 +7,8 @@ const authRoutes = require('./routes/authRoutes');
 const emailRoutes = require('./routes/emailRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const postRoutes = require('./routes/postRoutes');
-const messageRoutes = require('./routes/messageRoutes'); // NUEVO: comentarios REST
+const messageRoutes = require('./routes/messageRoutes');
+const notificationRoutes = require('./routes/notificationRoutes'); // NUEVO
 const errorHandler = require('./middlewares/errorMiddleware');
 const notFoundHandler = require('./middlewares/notFoundHandler');
 const authMiddleware = require('./middlewares/authMiddleware');
@@ -64,6 +65,7 @@ app.use('/api/user', authMiddleware, userRoutes);
 app.use('/api/icon', authMiddleware, fileRoutes);
 app.use('/api/post', authMiddleware, postRoutes);
 app.use('/api/comments', authMiddleware, messageRoutes); // NUEVO: comentarios persistentes vía REST
+app.use('/api/notifications', authMiddleware, notificationRoutes); // NUEVO: likes/comentarios
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
