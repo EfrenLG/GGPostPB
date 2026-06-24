@@ -49,6 +49,11 @@ const userSchema = new mongoose.Schema({
         default: '',
         maxlength: 150
     },
+    // NUEVO: usuarios bloqueados por este usuario
+    blocked: {
+        type: [String],
+        default: []
+    },
     fechaAlta: {
         type: Date,
         required: true,

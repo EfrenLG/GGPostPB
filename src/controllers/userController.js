@@ -10,6 +10,10 @@ const {
     acceptFollowRequest,
     rejectFollowRequest,
     updateBio,
+    removeFollower,
+    blockUser,
+    unblockUser,
+    getBlockedUsers,
 } = require('../services/userServices');
 const { getUserValidations, updateUserIconValidations } = require('../validations/userValidations');
 
@@ -190,6 +194,65 @@ const userController = {
             } catch (e) {
                 console.log('Error al actualizar la bio', e);
                 response.status(500).json({ error: 'Error al actualizar la bio' });
+            }
+        }
+    ],
+
+    // NUEVO: eliminar a alguien de mis seguidores
+    removeFollowerController: [
+        async (req, response) => {
+            try {
+                const myId = req.user.id;
+                const { id: followerId } = req.params;
+                await removeFollower(myId, followerId);
+                response.status(200).json({ success: true });
+            } catch (e) {
+                console.log('Error al eliminar seguidor', e);
+                response.status(500).json({ error: e.message || 'Error al eliminar seguidor' });
+            }
+        }
+    ],
+
+    // NUEVO: bloquear usuario
+    blockUserController: [
+        async (req, response) => {
+            try {
+                const myId = req.user.id;
+                const { id: targetId } = req.params;
+                await blockUser(myId, targetId);
+                response.status(200).json({ success: true });
+            } catch (e) {
+                console.log('Error al bloquear usuario', e);
+                response.status(500).json({ error: e.message || 'Error al bloquear usuario' });
+            }
+        }
+    ],
+
+    // NUEVO: desbloquear usuario
+    unblockUserController: [
+        async (req, response) => {
+            try {
+                const myId = req.user.id;
+                const { id: targetId } = req.params;
+                await unblockUser(myId, targetId);
+                response.status(200).json({ success: true });
+            } catch (e) {
+                console.log('Error al desbloquear usuario', e);
+                response.status(500).json({ error: e.message || 'Error al desbloquear usuario' });
+            }
+        }
+    ],
+
+    // NUEVO: lista de usuarios bloqueados
+    getBlockedUsersController: [
+        async (req, response) => {
+            try {
+                const myId = req.user.id;
+                const data = await getBlockedUsers(myId);
+                response.status(200).json(data);
+            } catch (e) {
+                console.log('Error al obtener usuarios bloqueados', e);
+                response.status(500).json({ error: 'Error al obtener usuarios bloqueados' });
             }
         }
     ],

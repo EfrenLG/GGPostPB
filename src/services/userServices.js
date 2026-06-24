@@ -89,6 +89,15 @@ async function followUser(currentUserId, targetUserId) {
             throw new Error('Usuario no encontrado');
         }
 
+        // NUEVO: si hay un bloqueo en cualquier sentido, no se puede seguir
+        const blockedByMe = currentUser.blocked.includes(targetUserId);
+        const blockedByThem = targetUser.blocked.includes(currentUserId);
+        if (blockedByMe || blockedByThem) {
+            const err = new Error('No es posible seguir a este usuario');
+            err.status = 403;
+            throw err;
+        }
+
         const alreadyFollowing = currentUser.following.includes(targetUserId);
 
         // Ya le sigues -> unfollow (independientemente de si es privada o no)
@@ -229,9 +238,16 @@ async function getPublicProfile(targetId, viewerId) {
         const usuario = await Usuario.findById(targetId, '-password -email -permissions');
         if (!usuario) throw new Error('Usuario no encontrado');
 
-        const isOwner     = String(targetId) === String(viewerId);
+        const isOwner = String(targetId) === String(viewerId);
+
+        // NUEVO: comprobar bloqueo en cualquier sentido
+        const viewer = viewerId ? await Usuario.findById(viewerId) : null;
+        const blockedByMe = viewer ? viewer.blocked.includes(targetId) : false;
+        const blockedByThem = usuario.blocked.includes(viewerId);
+        const isBlocked = blockedByMe || blockedByThem;
+
         const isFollower   = usuario.followers.includes(viewerId);
-        const canViewPosts = isOwner || !usuario.isPrivate || isFollower;
+        const canViewPosts = !isBlocked && (isOwner || !usuario.isPrivate || isFollower);
 
         const posts = canViewPosts
             ? await Post.find({ idUser: targetId }).sort({ fechaAlta: -1 })
@@ -258,6 +274,8 @@ async function getPublicProfile(targetId, viewerId) {
             },
             canViewPosts,
             hasPendingRequest,
+            isBlocked,        // NUEVO: el front lo usa para ocultar el botón Seguir
+            blockedByMe,      // NUEVO: para saber si fui yo quien bloqueó
         };
 
     } catch (err) {
@@ -294,6 +312,95 @@ async function getFollowList(targetId, type) {
     }
 }
 
+// NUEVO: eliminar a alguien de tus seguidores (sin bloquearlo, puede volver a seguirte)
+async function removeFollower(myId, followerId) {
+    try {
+        const me = await Usuario.findById(myId);
+        if (!me) throw new Error('Usuario no encontrado');
+
+        if (!me.followers.includes(followerId)) {
+            throw new Error('Ese usuario no te sigue');
+        }
+
+        await Usuario.findByIdAndUpdate(myId, {
+            $pull: { followers: followerId }
+        });
+        await Usuario.findByIdAndUpdate(followerId, {
+            $pull: { following: myId }
+        });
+
+        return { success: true };
+    } catch (err) {
+        console.error('Error al eliminar seguidor:', err);
+        throw err;
+    }
+}
+
+// NUEVO: bloquear a un usuario — rompe cualquier relación de seguimiento existente
+// en ambos sentidos y añade el bloqueo
+async function blockUser(myId, targetId) {
+    try {
+        if (String(myId) === String(targetId)) {
+            throw new Error('No puedes bloquearte a ti mismo');
+        }
+
+        const target = await Usuario.findById(targetId);
+        if (!target) throw new Error('Usuario no encontrado');
+
+        // Romper relación de seguimiento en ambos sentidos
+        await Usuario.findByIdAndUpdate(myId, {
+            $pull: { following: targetId, followers: targetId, followRequests: targetId },
+            $addToSet: { blocked: targetId }
+        });
+        await Usuario.findByIdAndUpdate(targetId, {
+            $pull: { following: myId, followers: myId, followRequests: myId }
+        });
+
+        return { success: true };
+    } catch (err) {
+        console.error('Error al bloquear usuario:', err);
+        throw err;
+    }
+}
+
+// NUEVO: desbloquear a un usuario (no restaura el seguimiento previo)
+async function unblockUser(myId, targetId) {
+    try {
+        await Usuario.findByIdAndUpdate(myId, {
+            $pull: { blocked: targetId }
+        });
+        return { success: true };
+    } catch (err) {
+        console.error('Error al desbloquear usuario:', err);
+        throw err;
+    }
+}
+
+// NUEVO: lista de usuarios bloqueados con datos completos
+async function getBlockedUsers(myId) {
+    try {
+        const me = await Usuario.findById(myId);
+        if (!me) throw new Error('Usuario no encontrado');
+
+        const ids = me.blocked;
+        if (!ids || ids.length === 0) return [];
+
+        const usuarios = await Usuario.find(
+            { _id: { $in: ids } },
+            '_id username icon'
+        );
+
+        return usuarios.map(u => ({
+            id: u._id,
+            username: u.username,
+            icon: u.icon
+        }));
+    } catch (err) {
+        console.error('Error al obtener usuarios bloqueados:', err);
+        throw err;
+    }
+}
+
 module.exports = {
     getUser,
     updateUserIcon,
@@ -307,4 +414,8 @@ module.exports = {
     acceptFollowRequest,
     rejectFollowRequest,
     updateBio,
+    removeFollower,
+    blockUser,
+    unblockUser,
+    getBlockedUsers,
 };
